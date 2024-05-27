@@ -5,6 +5,8 @@
   become_user: exadmn
   tasks:
     - name: "Create required directories in /etc/letsencrypt2"
+      become: true
+      become_user: root
       file:
         path: "/etc/letsencrypt2/{{ item }}"
         state: directory
@@ -43,6 +45,8 @@
       register: acme_challenge_your_domain
 
     - name: "Create .well-known/acme-challenge directory"
+      become: true
+      become_user: root
       file:
         path: /var/www/html/.well-known/acme-challenge
         state: directory
@@ -51,6 +55,8 @@
         mode: 0755
 
     - name: "Implement http-01 challenge files"
+      become: true
+      become_user: root
       copy:
         content: "{{ acme_challenge_your_domain['challenge_data'][item]['http-01']['resource_value'] }}"
         dest: "/var/www/html/{{ acme_challenge_your_domain['challenge_data'][item]['http-01']['resource'] }}"
