@@ -25,10 +25,36 @@
     - name: "Generate Let's Encrypt private key"
       shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ domain_name }}.key"
 
+    - name: "Create temporary OpenSSL config with SAN"
+      copy:
+        content: |
+          [ req ]
+          default_bits       = 2048
+          distinguished_name = req_distinguished_name
+          req_extensions     = req_ext
+          prompt             = no
+
+          [ req_distinguished_name ]
+          CN = {{ domain_name }}
+
+          [ req_ext ]
+          subjectAltName = @alt_names
+
+          [ alt_names ]
+          DNS.1 = {{ domain_name }}
+          DNS.2 = www.{{ domain_name }}
+        dest: /tmp/openssl-{{ domain_name }}.cnf
+        mode: "0644"
+
     - name: "Generate Let's Encrypt CSR"
-      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ domain_name }}.key -subj \"/CN={{ domain_name }}\" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf \"\n[SAN]\nsubjectAltName=DNS:{{ domain_name }},DNS:www.{{ domain_name }}\")) | sudo tee /etc/letsencrypt2/csrs/{{ domain_name }}.csr"
+      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ domain_name }}.key -config /tmp/openssl-{{ domain_name }}.cnf -out /etc/letsencrypt2/csrs/{{ domain_name }}.csr"
       args:
         executable: /bin/bash
+
+    - name: "Remove temporary OpenSSL config"
+      file:
+        path: /tmp/openssl-{{ domain_name }}.cnf
+        state: absent
 
     - name: "Begin Let's Encrypt challenges"
       acme_certificate:
