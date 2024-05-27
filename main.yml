@@ -26,6 +26,8 @@
       shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ domain_name }}.key"
 
     - name: "Create temporary OpenSSL config with SAN"
+      become: true
+      become_user: root
       copy:
         content: |
           [ req ]
@@ -47,11 +49,15 @@
         mode: "0644"
 
     - name: "Generate Let's Encrypt CSR"
+      become: true
+      become_user: root
       shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ domain_name }}.key -config /tmp/openssl-{{ domain_name }}.cnf -out /etc/letsencrypt2/csrs/{{ domain_name }}.csr"
       args:
         executable: /bin/bash
 
     - name: "Remove temporary OpenSSL config"
+      become: true
+      become_user: root
       file:
         path: /tmp/openssl-{{ domain_name }}.cnf
         state: absent
