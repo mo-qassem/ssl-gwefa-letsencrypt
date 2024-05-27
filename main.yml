@@ -99,6 +99,11 @@
         - "{{ domain_name }}"
         - "www.{{ domain_name }}"
 
+    - name: Stop iptables service
+      service:
+        name: iptables
+        state: stopped
+
     - name: "Complete Let's Encrypt challenges"
       acme_certificate:
         acme_directory: "{{ acme_directory }}"
