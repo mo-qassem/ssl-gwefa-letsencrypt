@@ -14,12 +14,12 @@
       args:
         creates: "{{ certbot_output_dir }}"
 
-    - name: Restart httpd webserver
-      ansible.builtin.service:
-        name: httpd
-        state: restarted
-
     - name: Start iptables service
       ansible.builtin.service:
         name: iptables
         state: started
+
+    - name: Restart httpd webserver
+      ansible.builtin.service:
+        name: httpd
+        state: restarted
