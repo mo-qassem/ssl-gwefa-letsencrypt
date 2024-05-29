@@ -23,7 +23,7 @@
       shell: "if [ ! -f {{ letsencrypt_account_key }} ]; then openssl genrsa 4096 | sudo tee {{ letsencrypt_account_key }}; fi"
 
     - name: "Generate Let's Encrypt private key"
-      shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ ansible_hostname }}.key"
+      shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ inventory_hostname }}.key"
 
     - name: "Create temporary OpenSSL config with SAN"
       become: true
@@ -37,20 +37,20 @@
           prompt             = no
 
           [ req_distinguished_name ]
-          CN = {{ ansible_hostname }}
+          CN = {{ inventory_hostname }}
 
           [ req_ext ]
           subjectAltName = @alt_names
 
           [ alt_names ]
-          DNS.1 = {{ ansible_hostname }}
-        dest: /tmp/openssl-{{ ansible_hostname }}.cnf
+          DNS.1 = {{ inventory_hostname }}
+        dest: /tmp/openssl-{{ inventory_hostname }}.cnf
         mode: "0644"
 
     - name: "Generate Let's Encrypt CSR"
       become: true
       become_user: root
-      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ ansible_hostname }}.key -config /tmp/openssl-{{ ansible_hostname }}.cnf -out /etc/letsencrypt2/csrs/{{ ansible_hostname }}.csr"
+      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ inventory_hostname }}.key -config /tmp/openssl-{{ inventory_hostname }}.cnf -out /etc/letsencrypt2/csrs/{{ inventory_hostname }}.csr"
       args:
         executable: /bin/bash
 
@@ -58,7 +58,7 @@
       become: true
       become_user: root
       file:
-        path: /tmp/openssl-{{ ansible_hostname }}.cnf
+        path: /tmp/openssl-{{ inventory_hostname }}.cnf
         state: absent
 
     - name: "Begin Let's Encrypt challenges"
@@ -71,9 +71,9 @@
         account_email: "{{ acme_email }}"
         terms_agreed: 1
         challenge: "{{ acme_challenge_type }}"
-        csr: "{{ letsencrypt_csrs_dir }}/{{ ansible_hostname }}.csr"
-        dest: "{{ letsencrypt_certs_dir }}/{{ ansible_hostname }}.crt"
-        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ ansible_hostname }}.crt"
+        csr: "{{ letsencrypt_csrs_dir }}/{{ inventory_hostname }}.csr"
+        dest: "{{ letsencrypt_certs_dir }}/{{ inventory_hostname }}.crt"
+        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ inventory_hostname }}.crt"
         remaining_days: 91
       register: acme_challenge
 
@@ -101,7 +101,7 @@
         group: root
         mode: 0644
       with_items:
-        - "{{ ansible_hostname }}"
+        - "{{ inventory_hostname }}"
 
     - name: Stop iptables service
       service:
@@ -115,10 +115,10 @@
         account_key_src: "{{ letsencrypt_account_key }}"
         account_email: "{{ acme_email }}"
         challenge: "{{ acme_challenge_type }}"
-        csr: "{{ letsencrypt_csrs_dir }}/{{ ansible_hostname }}.csr"
-        dest: "{{ letsencrypt_certs_dir }}/{{ ansible_hostname }}.crt"
-        chain_dest: "{{ letsencrypt_certs_dir }}/chain_{{ ansible_hostname }}.crt"
-        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ ansible_hostname }}"
+        csr: "{{ letsencrypt_csrs_dir }}/{{ inventory_hostname }}.csr"
+        dest: "{{ letsencrypt_certs_dir }}/{{ inventory_hostname }}.crt"
+        chain_dest: "{{ letsencrypt_certs_dir }}/chain_{{ inventory_hostname }}.crt"
+        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ inventory_hostname }}"
         data: "{{ acme_challenge }}"
 
     - name: Start iptables service
