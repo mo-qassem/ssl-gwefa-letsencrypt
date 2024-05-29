@@ -23,7 +23,7 @@
       shell: "if [ ! -f {{ letsencrypt_account_key }} ]; then openssl genrsa 4096 | sudo tee {{ letsencrypt_account_key }}; fi"
 
     - name: "Generate Let's Encrypt private key"
-      shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ domain_name }}.key"
+      shell: "openssl genrsa 4096 | sudo tee /etc/letsencrypt2/keys/{{ ansible_hostname }}.key"
 
     - name: "Create temporary OpenSSL config with SAN"
       become: true
@@ -37,21 +37,20 @@
           prompt             = no
 
           [ req_distinguished_name ]
-          CN = {{ domain_name }}
+          CN = {{ ansible_hostname }}
 
           [ req_ext ]
           subjectAltName = @alt_names
 
           [ alt_names ]
-          DNS.1 = {{ domain_name }}
-          DNS.2 = www.{{ domain_name }}
-        dest: /tmp/openssl-{{ domain_name }}.cnf
+          DNS.1 = {{ ansible_hostname }}
+        dest: /tmp/openssl-{{ ansible_hostname }}.cnf
         mode: "0644"
 
     - name: "Generate Let's Encrypt CSR"
       become: true
       become_user: root
-      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ domain_name }}.key -config /tmp/openssl-{{ domain_name }}.cnf -out /etc/letsencrypt2/csrs/{{ domain_name }}.csr"
+      shell: "openssl req -new -sha256 -key /etc/letsencrypt2/keys/{{ ansible_hostname }}.key -config /tmp/openssl-{{ ansible_hostname }}.cnf -out /etc/letsencrypt2/csrs/{{ ansible_hostname }}.csr"
       args:
         executable: /bin/bash
 
@@ -59,7 +58,7 @@
       become: true
       become_user: root
       file:
-        path: /tmp/openssl-{{ domain_name }}.cnf
+        path: /tmp/openssl-{{ ansible_hostname }}.cnf
         state: absent
 
     - name: "Begin Let's Encrypt challenges"
@@ -72,11 +71,15 @@
         account_email: "{{ acme_email }}"
         terms_agreed: 1
         challenge: "{{ acme_challenge_type }}"
-        csr: "{{ letsencrypt_csrs_dir }}/{{ domain_name }}.csr"
-        dest: "{{ letsencrypt_certs_dir }}/{{ domain_name }}.crt"
-        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ domain_name }}.crt"
+        csr: "{{ letsencrypt_csrs_dir }}/{{ ansible_hostname }}.csr"
+        dest: "{{ letsencrypt_certs_dir }}/{{ ansible_hostname }}.crt"
+        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ ansible_hostname }}.crt"
         remaining_days: 91
-      register: acme_challenge_gwefa_com
+      register: acme_challenge
+
+    - name: "Debug acme_challenge"
+      debug:
+        var: acme_challenge
 
     - name: "Create .well-known/acme-challenge directory"
       become: true
@@ -92,14 +95,13 @@
       become: true
       become_user: root
       copy:
-        content: "{{ acme_challenge_gwefa_com['challenge_data'][item]['http-01']['resource_value'] }}"
-        dest: "/var/www/html/{{ acme_challenge_gwefa_com['challenge_data'][item]['http-01']['resource'] }}"
+        content: "{{ acme_challenge['challenge_data'][item]['http-01']['resource_value'] }}"
+        dest: "/var/www/html/{{ acme_challenge['challenge_data'][item]['http-01']['resource'] }}"
         owner: root
         group: root
         mode: 0644
       with_items:
-        - "{{ domain_name }}"
-        - "www.{{ domain_name }}"
+        - "{{ ansible_hostname }}"
 
     - name: Stop iptables service
       service:
@@ -113,11 +115,11 @@
         account_key_src: "{{ letsencrypt_account_key }}"
         account_email: "{{ acme_email }}"
         challenge: "{{ acme_challenge_type }}"
-        csr: "{{ letsencrypt_csrs_dir }}/{{ domain_name }}.csr"
-        dest: "{{ letsencrypt_certs_dir }}/{{ domain_name }}.crt"
-        chain_dest: "{{ letsencrypt_certs_dir }}/chain_{{ domain_name }}.crt"
-        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ domain_name }}"
-        data: "{{ acme_challenge_gwefa_com }}"
+        csr: "{{ letsencrypt_csrs_dir }}/{{ ansible_hostname }}.csr"
+        dest: "{{ letsencrypt_certs_dir }}/{{ ansible_hostname }}.crt"
+        chain_dest: "{{ letsencrypt_certs_dir }}/chain_{{ ansible_hostname }}.crt"
+        fullchain_dest: "{{ letsencrypt_certs_dir }}/fullchain_{{ ansible_hostname }}"
+        data: "{{ acme_challenge }}"
 
     - name: Start iptables service
       service:
