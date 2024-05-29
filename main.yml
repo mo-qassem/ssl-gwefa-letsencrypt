@@ -2,7 +2,7 @@
 - name: Update SSL certificate on GWEFA appliances
   hosts: all
   become: true
-  become_user: exadmn
+  become_user: root
   tasks:
     - name: Stop iptables service
       ansible.builtin.service:
