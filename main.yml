@@ -109,6 +109,8 @@
         state: stopped
 
     - name: "Complete Let's Encrypt challenges"
+      become: true
+      become_user: root
       acme_certificate:
         acme_directory: "{{ acme_directory }}"
         acme_version: "{{ acme_version }}"
