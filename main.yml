@@ -5,7 +5,7 @@
   become_user: exadmn
   tasks:
     - name: Stop iptables service
-      service:
+      ansible.builtin.service:
         name: iptables
         state: stopped
 
@@ -15,11 +15,11 @@
         creates: "{{ certbot_output_dir }}"
 
     - name: Restart httpd webserver
-      service:
+      ansible.builtin.service:
         name: httpd
         state: restarted
 
     - name: Start iptables service
-      service:
+      ansible.builtin.service:
         name: iptables
         state: started
