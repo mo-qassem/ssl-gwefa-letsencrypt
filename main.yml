@@ -95,13 +95,12 @@
       become: true
       become_user: root
       copy:
-        content: "{{ acme_challenge['challenge_data'][item]['http-01']['resource_value'] }}"
-        dest: "/var/www/html/{{ acme_challenge['challenge_data'][item]['http-01']['resource'] }}"
+        content: "{{ item.challenges[0].http-01.resource_value }}"
+        dest: "/var/www/html/{{ item.identifier.value }}/{{ item.challenges[0].http-01.resource }}"
         owner: root
         group: root
         mode: 0644
-      with_items:
-        - "{{ inventory_hostname }}"
+      with_items: "{{ acme_challenge['authorizations'].values() }}"
 
     - name: Stop iptables service
       service:
